@@ -32,7 +32,7 @@ public class tiny_gp {
             COS = 115,
             LN = 116,
             FSET_START = ADD,
-            FSET_END = LN;
+            FSET_END = DIV;
     static double [] x = new double[FSET_START];
     static double minrandom, maxrandom;
     static char [] program;
@@ -452,7 +452,7 @@ public class tiny_gp {
         print_parms();
         stats( fitness, pop, 0 );
         for ( gen = 1; gen < GENERATIONS; gen ++ ) {
-            if (  fbestpop > -1e-5 ) {
+            if (  fbestpop > -1e-3 ) {
                 System.out.print("PROBLEM SOLVED\n");
                 try {
                     createExcelFile();
@@ -536,16 +536,20 @@ public class tiny_gp {
 //        if ( args.length == 1 ) {
 //            fname = args[0];
 //        }
-        File dir = new File(pathToDataDir);
+//        File dir = new File(pathToDataDir);
+//
+//        if(dir.exists() && dir.isDirectory()) {
+//            File[] dataFiles = dir.listFiles();
+//
+//            for(File file:dataFiles) {
+//                tiny_gp gp = new tiny_gp("TinyGP-Java/data/"+file.getName(), s);
+//                gp.evolve();
+//            }
+//        }
 
-        if(dir.exists() && dir.isDirectory()) {
-            File[] dataFiles = dir.listFiles();
-
-            for(File file:dataFiles) {
-                tiny_gp gp = new tiny_gp("TinyGP-Java/data/"+file.getName(), s);
-                gp.evolve();
-            }
-        }
+        String fname = "TinyGP-Java/dataaa/function_f1_domain_0.dat";
+        tiny_gp gp = new tiny_gp(fname, s);
+        gp.evolve();
 
     }
 };
