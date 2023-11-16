@@ -5,11 +5,21 @@
  *
  */
 
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import java.util.*;
 import java.io.*;
 import java.text.DecimalFormat;
 
 public class tiny_gp {
+
+    ArrayList<Object []> excel_vector = new ArrayList<>();
+    String excelFilePath;
+
+    StringBuilder bufor_for_best_individual = new StringBuilder();
     double [] fitness;
     char [][] pop;
     static Random rd = new Random();
@@ -18,8 +28,11 @@ public class tiny_gp {
             SUB = 111,
             MUL = 112,
             DIV = 113,
+            SIN = 114,
+            COS = 115,
+            LN = 116,
             FSET_START = ADD,
-            FSET_END = DIV;
+            FSET_END = LN;
     static double [] x = new double[FSET_START];
     static double minrandom, maxrandom;
     static char [] program;
@@ -54,6 +67,9 @@ public class tiny_gp {
                            else
                                return( num / den );
                        }
+            case SIN : return( Math.sin(run()));
+            case COS : return( Math.cos(run()) );
+            case LN : return( Math.log(run()) );
         }
         return( 0.0 ); // should never get here
     }
@@ -67,6 +83,9 @@ public class tiny_gp {
             case SUB:
             case MUL:
             case DIV:
+            case SIN:
+            case COS:
+            case LN:
                 return( traverse( buffer, traverse( buffer, ++buffercount ) ) );
         }
         return( 0 ); // should never get here
@@ -84,6 +103,7 @@ public class tiny_gp {
             line = in.readLine();
             StringTokenizer tokens = new StringTokenizer(line);
             varnumber = Integer.parseInt(tokens.nextToken().trim());
+//            System.out.println(varnumber);
             randomnumber = Integer.parseInt(tokens.nextToken().trim());
             minrandom =	Double.parseDouble(tokens.nextToken().trim());
             maxrandom =  Double.parseDouble(tokens.nextToken().trim());
@@ -149,6 +169,9 @@ public class tiny_gp {
                 case SUB:
                 case MUL:
                 case DIV:
+                case SIN:
+                case COS:
+                case LN:
                     buffer[pos] = prim;
                     one_child = grow( buffer, pos+1, max,depth-1);
                     if ( one_child < 0 )
@@ -161,33 +184,78 @@ public class tiny_gp {
 
     int print_indiv( char []buffer, int buffercounter ) {
         int a1=0, a2;
+
         if ( buffer[buffercounter] < FSET_START ) {
-            if ( buffer[buffercounter] < varnumber )
-                System.out.print( "X"+ (buffer[buffercounter] + 1 )+ " ");
-            else
-                System.out.print( x[buffer[buffercounter]]);
+            if ( buffer[buffercounter] < varnumber ) {
+                System.out.print("X" + (buffer[buffercounter] + 1) + " ");
+                bufor_for_best_individual.append("X" + (buffer[buffercounter] + 1) + " ");
+            }
+            else {
+                System.out.print(x[buffer[buffercounter]]);
+                bufor_for_best_individual.append(x[buffer[buffercounter]]);
+            }
             return( ++buffercounter );
         }
         switch(buffer[buffercounter]) {
             case ADD: System.out.print( "(");
+                        bufor_for_best_individual.append("(");
                       a1=print_indiv( buffer, ++buffercounter );
                       System.out.print( " + ");
+                        bufor_for_best_individual.append(" + ");
                       break;
             case SUB: System.out.print( "(");
+                        bufor_for_best_individual.append("(");
                       a1=print_indiv( buffer, ++buffercounter );
                       System.out.print( " - ");
+                    bufor_for_best_individual.append(" - ");
                       break;
             case MUL: System.out.print( "(");
+                        bufor_for_best_individual.append("(");
                       a1=print_indiv( buffer, ++buffercounter );
                       System.out.print( " * ");
+                    bufor_for_best_individual.append(" * ");
                       break;
             case DIV: System.out.print( "(");
+                        bufor_for_best_individual.append("(");
                       a1=print_indiv( buffer, ++buffercounter );
                       System.out.print( " / ");
+                    bufor_for_best_individual.append(" / ");
                       break;
+            case SIN: System.out.print( "(");
+                bufor_for_best_individual.append("(");
+
+                System.out.print( " cos( ");
+                bufor_for_best_individual.append(" SIN( ");
+
+                a1=print_indiv( buffer, ++buffercounter );
+                System.out.print(")");
+                bufor_for_best_individual.append( ")" );
+                break;
+            case COS: System.out.print( "(");
+                bufor_for_best_individual.append("(");
+
+                System.out.print( " cos( ");
+                bufor_for_best_individual.append(" COS( ");
+
+                a1=print_indiv( buffer, ++buffercounter );
+
+                System.out.print(")");
+                bufor_for_best_individual.append( ")" );
+                break;
+            case LN: System.out.print( "(");
+                bufor_for_best_individual.append("(");
+
+                System.out.print( " cos( ");
+                bufor_for_best_individual.append(" LN( ");
+
+                a1=print_indiv( buffer, ++buffercounter );
+                System.out.print(")");
+                bufor_for_best_individual.append( ")" );
+                break;
         }
         a2=print_indiv( buffer, a1 );
         System.out.print( ")");
+        bufor_for_best_individual.append(")");
         return( a2);
     }
 
@@ -239,7 +307,20 @@ public class tiny_gp {
         System.out.print("Generation="+gen+" Avg Fitness="+(-favgpop)+
                 " Best Fitness="+(-fbestpop)+" Avg Size="+avg_len+
                 "\nBest Individual: ");
+
+//        for (char c:pop[best]
+//             ) {
+//            System.out.print((int)c + " ");
+//        }
+
+        Object[] excelRow = {seed, MAX_LEN,POPSIZE,DEPTH,CROSSOVER_PROB,PMUT_PER_NODE,minrandom,maxrandom,GENERATIONS,TSIZE,gen,-favgpop,-fbestpop,avg_len," "}; // creating next data row for excel
+
         print_indiv( pop[best], 0 );
+
+        excelRow[excelRow.length-1] = bufor_for_best_individual.toString(); // adding the best individual at the last position of the row
+        excel_vector.add(excelRow); // adding next row to excel vector
+        bufor_for_best_individual.delete(0, bufor_for_best_individual.length());
+
         System.out.print( "\n");
         System.out.flush();
     }
@@ -316,6 +397,9 @@ public class tiny_gp {
                         case SUB:
                         case MUL:
                         case DIV:
+                        case SIN:
+                        case COS:
+                        case LN:
                             parentcopy[mutsite] =
                                 (char) (rd.nextInt(FSET_END - FSET_START + 1)
                                         + FSET_START);
@@ -339,6 +423,18 @@ public class tiny_gp {
     }
 
     public tiny_gp( String fname, long s ) {
+        Object [] excel_title = {"SEED", "MAX_LEN", "POPSIZE", "DEPTH", "CROSSOVER_PROB", "PMUT_PER_NODE", "MIN_RANDOM", "MAX_RANDOM", "GENERATIONS", "TSIZE", "Generation", "Avg Fitness", "Best fitness", "Avg Size", "Best Individual"};
+        excel_vector.add(excel_title); // adding title row to excel vector
+
+        StringBuilder pathExcelFile = new StringBuilder(fname);
+
+
+        pathExcelFile.replace(pathExcelFile.indexOf("/")+1,pathExcelFile.lastIndexOf("/"), "outputData");
+
+        pathExcelFile.replace(pathExcelFile.lastIndexOf("."),pathExcelFile.length(),"xlsx");
+
+        this.excelFilePath = pathExcelFile.toString();
+
         fitness =  new double[POPSIZE];
         seed = s;
         if ( seed >= 0 )
@@ -358,6 +454,11 @@ public class tiny_gp {
         for ( gen = 1; gen < GENERATIONS; gen ++ ) {
             if (  fbestpop > -1e-5 ) {
                 System.out.print("PROBLEM SOLVED\n");
+                try {
+                    createExcelFile();
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
                 System.exit( 0 );
             }
             for ( indivs = 0; indivs < POPSIZE; indivs ++ ) {
@@ -378,22 +479,73 @@ public class tiny_gp {
             stats( fitness, pop, gen );
         }
         System.out.print("PROBLEM *NOT* SOLVED\n");
+        try {
+            createExcelFile();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         System.exit( 1 );
     }
 
+    void createExcelFile() throws FileNotFoundException{
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet sheet = workbook.createSheet("outputData");
+
+        int i = 0;
+        for(Object[] element: excel_vector){
+            XSSFRow row = sheet.createRow(i++);
+            for(int j = 0; j<15; j++){
+                XSSFCell cell = row.createCell(j);
+                Object value = element[j];
+
+                if(value instanceof String)
+                    cell.setCellValue((String)value);
+
+                if(value instanceof Integer)
+                    cell.setCellValue((Integer)value);
+
+                if(value instanceof Double)
+                    cell.setCellValue((Double)value);
+            }
+        }
+
+        String filePath = excelFilePath;
+        FileOutputStream outstream = new FileOutputStream(filePath);
+        try {
+            workbook.write(outstream);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            outstream.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
     public static void main(String[] args) {
-        String fname = "problem.dat";
+        String pathToDataDir = "TinyGP-Java/data";
         long s = -1;
 
-        if ( args.length == 2 ) {
-            s = Integer.valueOf(args[0]).intValue();
-            fname = args[1];
-        }
-        if ( args.length == 1 ) {
-            fname = args[0];
+//        if ( args.length == 2 ) {
+//            s = Integer.valueOf(args[0]).intValue();
+//            fname = args[1];
+//        }
+//        if ( args.length == 1 ) {
+//            fname = args[0];
+//        }
+        File dir = new File(pathToDataDir);
+
+        if(dir.exists() && dir.isDirectory()) {
+            File[] dataFiles = dir.listFiles();
+
+            for(File file:dataFiles) {
+                tiny_gp gp = new tiny_gp("TinyGP-Java/data/"+file.getName(), s);
+                gp.evolve();
+            }
         }
 
-        tiny_gp gp = new tiny_gp(fname, s);
-        gp.evolve();
     }
 };
