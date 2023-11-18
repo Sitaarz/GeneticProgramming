@@ -10,6 +10,12 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.matheclipse.core.eval.ExprEvaluator;
+import org.matheclipse.core.interfaces.IExpr;
+import org.matheclipse.parser.client.SyntaxError;
+import org.matheclipse.parser.client.math.MathException;
+
+
 import java.util.*;
 import java.io.*;
 import java.text.DecimalFormat;
@@ -45,7 +51,7 @@ public class tiny_gp {
         MAX_LEN = 10000,
                 POPSIZE = 100000,
                 DEPTH   = 5,
-                GENERATIONS = 100,
+                GENERATIONS = 150,
                 TSIZE = 2;
     public static final double
         PMUT_PER_NODE  = 0.05,
@@ -185,6 +191,8 @@ public class tiny_gp {
     int print_indiv( char []buffer, int buffercounter ) {
         int a1=0, a2;
 
+
+
         if ( buffer[buffercounter] < FSET_START ) {
             if ( buffer[buffercounter] < varnumber ) {
                 System.out.print("X" + (buffer[buffercounter] + 1) + " ");
@@ -317,6 +325,8 @@ public class tiny_gp {
 
         print_indiv( pop[best], 0 );
 
+        bufor_for_best_individual = new StringBuilder(simplifyExpression(bufor_for_best_individual.toString())); // simplifing expression
+
         excelRow[excelRow.length-1] = bufor_for_best_individual.toString(); // adding the best individual at the last position of the row
         excel_vector.add(excelRow); // adding next row to excel vector
         bufor_for_best_individual.delete(0, bufor_for_best_individual.length());
@@ -431,7 +441,7 @@ public class tiny_gp {
 
         pathExcelFile.replace(pathExcelFile.indexOf("/")+1,pathExcelFile.lastIndexOf("/"), "outputData");
 
-        pathExcelFile.replace(pathExcelFile.lastIndexOf("."),pathExcelFile.length(),"xlsx");
+        pathExcelFile.replace(pathExcelFile.lastIndexOf(".")+1,pathExcelFile.length(),"xlsx");
 
         this.excelFilePath = pathExcelFile.toString();
 
@@ -452,14 +462,15 @@ public class tiny_gp {
         print_parms();
         stats( fitness, pop, 0 );
         for ( gen = 1; gen < GENERATIONS; gen ++ ) {
-            if (  fbestpop > -1e-3 ) {
+            if (  fbestpop > -1 ) {
                 System.out.print("PROBLEM SOLVED\n");
                 try {
                     createExcelFile();
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e);
                 }
-                System.exit( 0 );
+                return;
+//                System.exit( 0 );
             }
             for ( indivs = 0; indivs < POPSIZE; indivs ++ ) {
                 if ( rd.nextDouble() < CROSSOVER_PROB  ) {
@@ -484,7 +495,7 @@ public class tiny_gp {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-        System.exit( 1 );
+//        System.exit( 1 );
     }
 
     void createExcelFile() throws FileNotFoundException{
@@ -525,8 +536,26 @@ public class tiny_gp {
 
     }
 
+    private static String simplifyExpression(String expression) {
+        try {
+            ExprEvaluator util = new ExprEvaluator();
+            IExpr result = util.eval(expression);
+            // print: 6*a==b
+            return result.toString();
+        } catch (SyntaxError e) {
+            // catch Symja parser errors here
+            System.out.println(e.getMessage());
+        } catch (MathException me) {
+            // catch Symja math errors here
+            System.out.println(me.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();}
+        return "error";
+    }
+
+
     public static void main(String[] args) {
-        String pathToDataDir = "TinyGP-Java/data";
+        String pathToDataDir = "TinyGP-Java/dataaa";
         long s = -1;
 
 //        if ( args.length == 2 ) {
@@ -536,20 +565,21 @@ public class tiny_gp {
 //        if ( args.length == 1 ) {
 //            fname = args[0];
 //        }
-//        File dir = new File(pathToDataDir);
-//
-//        if(dir.exists() && dir.isDirectory()) {
-//            File[] dataFiles = dir.listFiles();
-//
-//            for(File file:dataFiles) {
-//                tiny_gp gp = new tiny_gp("TinyGP-Java/data/"+file.getName(), s);
-//                gp.evolve();
-//            }
-//        }
+        File dir = new File(pathToDataDir);
 
-        String fname = "TinyGP-Java/dataaa/function_f1_domain_0.dat";
-        tiny_gp gp = new tiny_gp(fname, s);
-        gp.evolve();
+        if(dir.exists() && dir.isDirectory()) {
+            File[] dataFiles = dir.listFiles();
+
+            for(File file:dataFiles) {
+                tiny_gp gp = new tiny_gp("TinyGP-Java/dataaa/"+file.getName(), s);
+                gp.evolve();
+//            System.out.println(file);
+            }
+        }
+
+//        String fname = "TinyGP-Java/dataaa/function_f1_domain_0.dat";
+//        tiny_gp gp = new tiny_gp(fname, s);
+//        gp.evolve();
 
     }
 };
